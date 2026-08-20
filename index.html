@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Luces Campo - Control Remoto</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f4f4f9;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      margin: 0;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 350px;
+      margin-top: 20px;
+    }
+    .bulb {
+      font-size: 60px;
+      color: #808080;
+      transition: color 0.3s ease;
+    }
+    button {
+      padding: 12px;
+      margin: 5px 0;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      font-weight: bold;
+      width: 100%;
+      max-width: 250px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .btn-on { background: #28a745; }
+    .btn-off { background: #dc3545; }
+    .btn-auto { background: #007bff; }
+    .btn-solar { background: #ffc107; color: black; }
+    .btn-save { background: #f39c12; max-width: 250px; }
+    input[type="time"] {
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 80px;
+      text-align: center;
+    }
+    .status-badge {
+      font-size: 14px;
+      margin-bottom: 15px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Luces Campo</h2>
+    <div id="bulb" class="bulb">&#128161;</div>
+    <div class="status-badge">Modo actual: <b id="modoActual">Cargando...</b></div>
+
+    <button class="btn-on" onclick="setEstado(true, 'ON')">Encendido</button>
+    <button class="btn-off" onclick="setEstado(false, 'OFF')">Apagado</button>
+    <button class="btn-auto" onclick="setModo('AUTO')">AUTO</button>
+    <button class="btn-solar" onclick="setModo('SOLAR')">Aman/Anoch</button>
+
+    <div style="margin:20px 0 10px 0;">
+      <label>ON: <input type="time" id="timeOn" value="20:00"></label>
+      <label>OFF: <input type="time" id="timeOff" value="07:00"></label>
+    </div>
+    <button class="btn-save" onclick="guardarHorario()">Guardar Horario</button>
+  </div>
+
+  <!-- Firebase SDK versión 8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script>
+    // Configuración de tu base de datos de Firebase
+    const firebaseConfig = {
+      databaseURL: "https://luces-campo-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const deviceRef = db.ref('luces_campo');
+
+    // Referencias HTML
+    const bulb = document.getElementById('bulb');
+    const modoActual = document.getElementById('modoActual');
+
+    // Escuchar cambios en tiempo real desde Firebase
+    deviceRef.on('value', (snapshot) => {
+      const data = snapshot.val() || {};
+     
+      // Actualizar el estado de la bombilla
+      if (data.estado === true) {
+        bulb.style.color = '#f1c40f';
+      } else {
+        bulb.style.color = '#808080';
+      }
+
+      // Actualizar el modo
+      if (data.modo) {
+        modoActual.innerText = data.modo;
+      }
+
+      // Cargar horarios guardados
+      if (data.onTime) document.getElementById('timeOn').value = data.onTime;
+      if (data.offTime) document.getElementById('timeOff').value = data.offTime;
+    });
+
+    // Funciones de control
+    function setEstado(estado, modo) {
+      deviceRef.update({
+        estado: estado,
+        modo: modo
+      });
+    }
+
+    function setModo(modo) {
+      deviceRef.update({ modo: modo });
+    }
+
+    function guardarHorario() {
+      const onVal = document.getElementById('timeOn').value;
+      const offVal = document.getElementById('timeOff').value;
+      deviceRef.update({
+        onTime: onVal,
+        offTime: offVal,
+        modo: 'AUTO'
+      });
+      alert('Horario enviado a Firebase');
+    }
+  </script>
+</body>
+</html>
